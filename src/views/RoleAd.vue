@@ -98,29 +98,6 @@ import type { FormInstance } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Api from './../api'
 
-// 类型定义
-interface Role {
-  _id?: string | number
-  roleId?: string | number
-  roleName: string
-  remark?: string
-  roleDesc?: string
-  permissionList?: {
-    checkedKeys?: string[]
-    halfCheckedKeys?: string[]
-  }
-  permsList?: string[]
-  updateTime?: string
-  createTime?: string
-}
-
-interface RoleForm {
-  roleId?: string | number
-  roleName: string
-  roleDesc: string
-  perms: string[]
-}
-
 // ==================== 表格数据 ====================
 
 /** 搜索表单数据 */
@@ -148,7 +125,7 @@ const selectedPerms = ref<string[]>([])
 const currentRoleName = ref('')
 
 /** 当前角色ID */
-const currentRoleId = ref<string | number>('')
+const currentRoleId = ref<string | number | undefined>('')
 
 /** 权限树数据 */
 const permissionTree = ref<any[]>([])
@@ -524,7 +501,8 @@ const handleDialogConfirm = () => {
     })
   } else if (active.value === 'setPerms') {
     // 处理设置权限
-    // 获取所有选中的节�?    const checkedKeys = treeRef.value?.getCheckedKeys() || []
+    // 获取所有选中的节点
+    const checkedKeys = treeRef.value?.getCheckedKeys() || []
 
     const permData = {
       _id: currentRoleId.value,

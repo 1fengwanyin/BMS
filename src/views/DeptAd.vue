@@ -2,12 +2,12 @@
   <div class="dept-manager">
     <!-- ==================== 搜索区域 ==================== -->
     <div class="search-area">
-      <el-form :inline="true" :model="deptRuleForm" class="demo-form-inline">
+      <el-form :inline="true" :model="deptRuleForm" class="demo-form-inline" @submit.prevent>
         <el-form-item label="部门名称">
-          <el-input v-model="deptRuleForm.deptName" placeholder="请输入部门名称" />
+          <el-input v-model="deptRuleForm.deptName" placeholder="请输入部门名称" @keyup.enter="handleSearch" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button type="primary" @click="handleSearch" :loading="loading">查询</el-button>
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
@@ -21,12 +21,12 @@
     <!-- ==================== 部门表格区域 ==================== -->
     <div class="dept-table">
       <el-table :data="tableData" style="width: 100%" :tree-props="{ hasChildren: 'hasChildren', children: 'children' }"
-        row-key="_id">
-        <el-table-column prop="deptName" label="部门名称" width="180" />
-        <el-table-column prop="userName" label="负责人" width="180" />
-        <el-table-column prop="updateTime" label="更新时间" width="200" />
-        <el-table-column prop="createTime" label="注册时间" width="200" />
-        <el-table-column align="center" label="操作" width="200">
+        row-key="_id" :loading="loading">
+        <el-table-column prop="deptName" label="部门名称" min-width="180" />
+        <el-table-column prop="userName" label="负责人" min-width="180" />
+        <el-table-column prop="updateTime" label="更新时间" min-width="200" />
+        <el-table-column prop="createTime" label="注册时间" min-width="200" />
+        <el-table-column align="center" label="操作" min-width="200">
           <template #default="scope">
             <el-button size="small" @click="handleAdd(scope.$index, scope.row)">
               新增
@@ -47,25 +47,33 @@
       <!-- 新增/编辑部门表单 -->
       <div v-if="active === 'add' || active === 'edit'">
         <el-form ref="DialogRuleFormRef" style="max-width: 600px" :model="DialogRuleForm" :rules="DialogRules"
-          label-width="100px">
-          <!-- 部门名称 -->
-          <el-form-item label="部门名称" prop="deptName" required>
-            <el-input v-model="DialogRuleForm.deptName" placeholder="请输入部门名称" style="width: 300px;" />
+          label-width="120px">
+          <!-- 选择部门 -->
+          <el-form-item label="选择部门">
+            <el-select v-model="DialogRuleForm.parentId" placeholder="请选择" style="width: 300px;">
+              <el-option v-for="dept in allTableData" :key="dept._id || dept.deptId" :label="dept.deptName"
+                :value="dept._id || dept.deptId" />
+            </el-select>
+            <div class="select-hint">不选择则为一级部门</div>
           </el-form-item>
 
-          <!-- 负责人 -->
-          <el-form-item label="负责人">
-            <el-input v-model="DialogRuleForm.userName" placeholder="请输入负责人姓名" style="width: 300px;" />
+          <!-- 公司/部门名称 -->
+          <el-form-item label="公司/部门名称" prop="deptName" required>
+            <el-input v-model="DialogRuleForm.deptName" placeholder="请输入您部门名称" style="width: 300px;" />
           </el-form-item>
 
-          <!-- 邮箱 -->
-          <el-form-item label="邮箱">
-            <el-input v-model="DialogRuleForm.userEmail" placeholder="请输入负责人邮箱" style="width: 300px;" />
+          <!-- 员工名称 -->
+          <el-form-item label="员工名称" required>
+            <el-select v-model="DialogRuleForm.userId" placeholder="请选择" style="width: 300px;"
+              @change="handleUserChange">
+              <el-option v-for="employee in employeeList" :key="employee.value" :label="employee.label"
+                :value="employee.value" :disabled="isUserAssigned(employee.label)" />
+            </el-select>
           </el-form-item>
 
-          <!-- 部门描述 -->
-          <el-form-item label="部门描述">
-            <el-input v-model="DialogRuleForm.deptDesc" placeholder="请输入部门描述" style="width: 300px;" />
+          <!-- 员工邮箱 -->
+          <el-form-item label="员工邮箱">
+            <el-input v-model="DialogRuleForm.userEmail" placeholder="请输入您的邮箱" style="width: 300px;" :disabled="true" />
           </el-form-item>
         </el-form>
       </div>
@@ -87,35 +95,6 @@ import type { FormInstance } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Api from './../api'
 
-// ==================== 类型定义 ====================
-
-/** 部门数据类型 */
-interface Dept {
-  deptId: string | number
-  _id?: string | number
-  deptName: string
-  deptDesc?: string
-  userName?: string
-  userEmail?: string
-  parentId?: string | number | (string | number)[]
-  userId?: string | number
-  createTime?: string
-  updateTime?: string
-  children?: Dept[]
-  hasChildren?: boolean
-}
-
-/** 表单数据类型 */
-interface RuleForm {
-  deptId?: string | number
-  deptName: string
-  deptDesc: string
-  userName?: string
-  userEmail?: string
-  parentId?: string | number | (string | number)[]
-  userId?: string | number
-}
-
 // ==================== 表格数据 ====================
 
 /** 搜索表单数据 */
@@ -128,6 +107,37 @@ const allTableData = ref<Dept[]>([])
 
 /** 表格数据（当前页显示的数据） */
 const tableData = ref<Dept[]>([])
+
+/** 员工列表数据 */
+const employeeList = ref<Array<{ value: string; label: string; email: string }>>([])
+
+/** 搜索加载状态 */
+const loading = ref(false)
+
+/** 获取员工列表数据 */
+const getUserList = async () => {
+  try {
+    const res: any = await Api.getUserList()
+    if (res && res.list) {
+      // 转换为select组件需要的格式
+      employeeList.value = res.list.map((user: any) => ({
+        value: String(user._id || user.userId),
+        label: user.userName,
+        email: user.userEmail || ''
+      }))
+    }
+  } catch (error) {
+    console.error('获取员工列表失败:', error)
+    // 使用默认数据作为 fallback
+    employeeList.value = [
+      { value: '1', label: '艾特米', email: 'aitemi@example.com' },
+      { value: '2', label: '西阳子', email: 'xiyangzi@example.com' },
+      { value: '3', label: '王之环', email: 'wangzhihuan@example.com' },
+      { value: '4', label: '张三', email: 'zhangsan@example.com' },
+      { value: '5', label: '李四', email: 'lisi@example.com' }
+    ]
+  }
+}
 
 
 
@@ -146,7 +156,7 @@ const dialogTitle = ref('')
 const DialogRuleFormRef = ref<FormInstance>()
 
 /** 对话框表单数据 */
-const DialogRuleForm = reactive<RuleForm>({
+const DialogRuleForm = reactive<DeptForm>({
   deptId: undefined,
   deptName: '',
   deptDesc: '',
@@ -168,16 +178,60 @@ const DialogRules = {
 /**
  * 搜索按钮点击事件
  */
-const handleSearch = () => {
-  getDeptList()
+const handleSearch = async () => {
+  loading.value = true
+  try {
+    await getDeptList()
+    // 搜索完成后显示提示
+    if (tableData.value.length === 0) {
+      ElMessage.info('未找到匹配的部门')
+    } else {
+      ElMessage.success(`找到 ${tableData.value.length} 个匹配的部门`)
+    }
+  } catch (error) {
+    console.error('搜索失败:', error)
+    ElMessage.error('搜索失败，请重试')
+  } finally {
+    loading.value = false
+  }
 }
 
 /**
  * 重置按钮点击事件
  */
-const handleReset = () => {
+const handleReset = async () => {
   deptRuleForm.deptName = ''
-  getDeptList()
+  loading.value = true
+  try {
+    await getDeptList()
+    ElMessage.success('已重置搜索条件')
+  } catch (error) {
+    console.error('重置失败:', error)
+    ElMessage.error('重置失败，请重试')
+  } finally {
+    loading.value = false
+  }
+}
+
+/**
+ * 处理用户选择变化
+ */
+const handleUserChange = (userId: string) => {
+  const employee = employeeList.value.find(emp => emp.value === userId)
+  if (employee) {
+    DialogRuleForm.userName = employee.label
+    DialogRuleForm.userEmail = employee.email
+  } else {
+    DialogRuleForm.userName = ''
+    DialogRuleForm.userEmail = ''
+  }
+}
+
+/**
+ * 检查用户是否已经被分配到其他部门
+ */
+const isUserAssigned = (userName: string): boolean => {
+  return allTableData.value.some(dept => dept.userName === userName)
 }
 
 
@@ -214,6 +268,12 @@ const buildTree = (data: Dept[]): Dept[] => {
           if (child) {
             parent.children.push(child)
             parent.hasChildren = true
+          }
+        } else {
+          // 父部门不在过滤结果中，将子部门视为根部门
+          const root = map.get(deptId)
+          if (root) {
+            roots.push(root)
           }
         }
       } else {
@@ -260,11 +320,21 @@ const getDeptList = async () => {
       totalCount = res.length
     }
 
+    // 按部门名称过滤
+    let filteredData = originalData
+    if (deptRuleForm.deptName) {
+      const searchTerm = deptRuleForm.deptName.toLowerCase()
+      filteredData = filteredData.filter(item => {
+        const deptName = item.deptName?.toLowerCase() || ''
+        return deptName.includes(searchTerm)
+      })
+    }
+
     // 保存所有数据
-    allTableData.value = originalData
+    allTableData.value = filteredData
 
     // 构建树形结构
-    const treeData = buildTree(originalData)
+    const treeData = buildTree(filteredData)
     tableData.value = treeData
   } catch (err: any) {
     // 使用模拟数据
@@ -318,7 +388,7 @@ const getDeptList = async () => {
  */
 const handleAddClick = () => {
   active.value = 'add'
-  dialogTitle.value = '新增部门'
+  dialogTitle.value = '创建'
   // 重置表单
   Object.assign(DialogRuleForm, {
     deptId: undefined,
@@ -339,7 +409,7 @@ const handleAddClick = () => {
  */
 const handleAdd = (_index: number, row: Dept) => {
   active.value = 'add'
-  dialogTitle.value = '新增子部门'
+  dialogTitle.value = '创建'
   // 重置表单
   Object.assign(DialogRuleForm, {
     deptId: undefined,
@@ -347,7 +417,7 @@ const handleAdd = (_index: number, row: Dept) => {
     deptDesc: '',
     userName: '',
     userEmail: '',
-    parentId: [row._id || row.deptId],
+    parentId: row._id || row.deptId,
     userId: ''
   })
   customDraggingVisible.value = true
@@ -360,16 +430,38 @@ const handleAdd = (_index: number, row: Dept) => {
  */
 const handleEdit = (_index: number, row: Dept) => {
   active.value = 'edit'
-  dialogTitle.value = '编辑部门'
+  dialogTitle.value = '编辑'
+  // 根据 userName 查找对应的 userId
+  let userId = ''
+  let userName = ''
+  let userEmail = ''
+  if (row.userName) {
+    const employee = employeeList.value.find(emp => emp.label === row.userName)
+    if (employee) {
+      userId = employee.value
+      userName = employee.label
+      userEmail = employee.email
+    } else {
+      userName = row.userName
+      userEmail = row.userEmail || ''
+    }
+  } else if (row.userId) {
+    userId = String(row.userId)
+    const employee = employeeList.value.find(emp => emp.value === String(row.userId))
+    if (employee) {
+      userName = employee.label
+      userEmail = employee.email
+    }
+  }
   // 填充表单数据
   Object.assign(DialogRuleForm, {
     deptId: row._id || row.deptId,
     deptName: row.deptName,
     deptDesc: row.deptDesc || '',
-    userName: row.userName || '',
-    userEmail: row.userEmail || '',
-    parentId: row.parentId || [],
-    userId: row.userId || ''
+    userName: userName,
+    userEmail: userEmail,
+    parentId: Array.isArray(row.parentId) && row.parentId.length > 0 ? row.parentId[0] : row.parentId || '',
+    userId: userId
   })
   customDraggingVisible.value = true
 }
@@ -416,7 +508,7 @@ const handleDialogConfirm = () => {
           deptName: DialogRuleForm.deptName,
           userName: DialogRuleForm.userName,
           userEmail: DialogRuleForm.userEmail,
-          parentId: DialogRuleForm.parentId,
+          parentId: DialogRuleForm.parentId ? [DialogRuleForm.parentId] : [],
           userId: DialogRuleForm.userId,
           action: active.value
         }
@@ -444,9 +536,10 @@ const handleDialogConfirm = () => {
 // ==================== 生命周期 ====================
 
 /**
- * 组件挂载后获取部门列表
+ * 组件挂载后获取部门列表和员工列表
  */
-onMounted(() => {
+onMounted(async () => {
+  await getUserList()
   getDeptList()
 })
 </script>
@@ -456,6 +549,9 @@ onMounted(() => {
   padding: 24px;
   min-height: 100vh;
   background: var(--el-bg-color, #ffffff);
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
 
   .search-area {
     background: var(--el-bg-color, #ffffff);
@@ -516,12 +612,15 @@ onMounted(() => {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     padding: 24px;
     transition: all 0.3s ease;
+    min-width: 1300px;
+    overflow-x: auto;
 
     &:hover {
       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
     }
 
     .el-table {
+      width: 100% !important;
       margin-bottom: 20px;
 
       .el-table__header-wrapper {
@@ -556,6 +655,69 @@ onMounted(() => {
 
         .el-pagination__total {
           margin-right: 16px;
+        }
+      }
+    }
+  }
+
+  /* 对话框样式 */
+  .el-dialog {
+    .el-dialog__header {
+      padding: 20px 24px;
+    }
+
+    .el-dialog__title {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .el-dialog__body {
+      padding: 24px;
+    }
+
+    .el-form {
+      .el-form-item {
+        margin-bottom: 16px;
+
+        .el-form-item__label {
+          font-size: 14px;
+          color: #606266;
+        }
+
+        .el-form-item__content {
+          font-size: 14px;
+        }
+
+        .el-input.is-disabled {
+          background-color: #f5f7fa;
+          color: #909399;
+        }
+
+        .el-select {
+          width: 300px;
+        }
+
+        .el-input {
+          width: 300px;
+        }
+
+        .select-hint {
+          font-size: 12px;
+          color: #909399;
+          margin-top: 4px;
+        }
+      }
+    }
+
+    .dialog-footer {
+      text-align: right;
+      padding: 16px 24px 20px;
+
+      .el-button {
+        margin-left: 8px;
+
+        &:first-child {
+          margin-left: 0;
         }
       }
     }

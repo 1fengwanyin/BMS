@@ -52,6 +52,11 @@ const routes: RouteRecordRaw[] = [
                 name: 'ApproveAd',
                 component: () => import('../views/ApproveAd.vue'),
             },
+            {
+                path: '/together',
+                name: 'TogetherAd',
+                component: () => import('../views/TogetherAd.vue'),
+            },
         ]
     },
     {

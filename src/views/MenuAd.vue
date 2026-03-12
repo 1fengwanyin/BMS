@@ -120,43 +120,6 @@ import Api from './../api'
 
 // ==================== 类型定义 ====================
 
-/** 菜单数据类型 */
-interface Menu {
-  menuId: string | number
-  _id?: string | number
-  parentId: any
-  menuName: string
-  menuType: number
-  menuIcon?: string
-  icon?: string
-  menuPath?: string
-  path?: string
-  menuComponent?: string
-  component?: string
-  perms?: string
-  menuCode?: string
-  status?: number
-  menuState?: number
-  sort?: number
-  createTime?: string
-  children?: Menu[]
-  hasChildren?: boolean
-}
-
-/** 表单数据类型 */
-interface RuleForm {
-  menuId?: string | number
-  menuName: string
-  menuType: number
-  menuIcon: string
-  menuPath: string
-  menuComponent: string
-  parentId: (string | number)[] | number
-  sort: number
-  status: number
-  perms: string
-}
-
 // ==================== 表格数据 ====================
 
 /** 搜索表单数据 */
@@ -268,7 +231,7 @@ const dialogTitle = ref('')
 const DialogRuleFormRef = ref<FormInstance>()
 
 /** 对话框表单数据 */
-const DialogRuleForm = reactive<RuleForm>({
+const DialogRuleForm = reactive<MenuForm>({
   menuId: undefined,
   menuName: '',
   menuType: 1,
