@@ -57,6 +57,11 @@ const routes: RouteRecordRaw[] = [
                 name: 'TogetherAd',
                 component: () => import('../views/TogetherAd.vue'),
             },
+            {
+                path: '/track',
+                name: 'TrackAd',
+                component: () => import('../views/TrackAd.vue'),
+            },
         ]
     },
     {
