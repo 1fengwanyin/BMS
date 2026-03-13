@@ -118,6 +118,9 @@ import type { FormInstance } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Api from './../api'
 
+// 导入类型定义
+/// <reference path="../../types/user.d.ts" />
+
 // ==================== 类型定义 ====================
 
 // ==================== 表格数据 ====================

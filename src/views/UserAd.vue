@@ -154,6 +154,9 @@ import Api from './../api'
 import type { FormInstance, ComponentSize } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
+// 导入类型定义
+/// <reference path="../../types/user.d.ts" />
+
 // ==================== 分页相关状 ====================
 
 /** 当前页码 */

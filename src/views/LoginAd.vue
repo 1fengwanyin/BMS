@@ -53,12 +53,11 @@ import { ElMessage } from 'element-plus'
 import Api from './../api'
 import { useStore } from './../store'
 
+// 导入类型定义
+/// <reference path="../../types/user.d.ts" />
+
 const router = useRouter()
 const store = useStore()
-interface interLoginRuleForm {
-  userName: string
-  userPwd: string
-}
 
 const ruleFormRef = ref<FormInstance>()
 const ruleForm = reactive<interLoginRuleForm>({

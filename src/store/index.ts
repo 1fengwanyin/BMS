@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
+// 导入类型定义
+/// <reference path="../../types/user.d.ts" />
+
 // 用户信息接口
 interface UserInfo {
   userId?: string | number

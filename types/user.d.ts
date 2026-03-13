@@ -113,3 +113,28 @@ interface MenuForm {
     status: number
     perms: string
 }
+
+// 用户相关类型
+interface User {
+    userId: string | number
+    userName: string
+    userEmail: string
+    mobile?: string
+    job?: string
+    state: number
+    role: number
+    roleList?: string[]
+    deptId?: string | number | (string | number)[]
+    createTime: string
+    lastLoginTime?: string
+}
+
+interface RuleForm {
+    userName: string
+    userEmail: string
+    mobile: string
+    job: string
+    state: number
+    role: string[]
+    dept: (string | number)[]
+}
