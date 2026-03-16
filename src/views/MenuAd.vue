@@ -157,7 +157,7 @@ const columns = [
   {
     label: '菜单类型',
     prop: 'menuType',
-    width: 100,
+    width: 90,
     formatter: (row: Menu) => {
       switch (row.menuType) {
         case 1: return '菜单'
@@ -182,7 +182,7 @@ const columns = [
   {
     label: '组件路径',
     prop: 'menuComponent',
-    width: 100,
+    width: 120,
     formatter: (row: Menu) => row.menuComponent || row.component || ''
   },
   {
@@ -197,7 +197,7 @@ const columns = [
   {
     label: '注册时间',
     prop: 'createTime',
-    width: 200,
+    width: 190,
     formatter: (row: Menu) => {
       const time = row.createTime || ''
       // 格式化日期，移除不必要的部分
@@ -542,6 +542,20 @@ const handleDialogConfirm = () => {
             : DialogRuleForm.parentId,
           menuState: DialogRuleForm.status, // 将 status 转换为 menuState
           action: active.value
+        }
+
+        // 转换字段名以匹配后端期望的格式
+        if (formData.menuIcon) {
+          formData.icon = formData.menuIcon
+          delete formData.menuIcon
+        }
+        if (formData.menuPath) {
+          formData.path = formData.menuPath
+          delete formData.menuPath
+        }
+        if (formData.menuComponent) {
+          formData.component = formData.menuComponent
+          delete formData.menuComponent
         }
 
         // 移除 status 字段，因为后端使用 menuState

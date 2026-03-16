@@ -84,5 +84,23 @@ export default {
         method: 'GET',
         mock: false,
         data: params
+    }),
+    getLeaveList: (params?: any) => request({
+        url: '/leave/list',
+        method: 'GET',
+        mock: false,
+        data: params
+    }),
+    operateLeave: (params?: any) => request({
+        url: '/leave/add',
+        method: 'POST',
+        mock: false,
+        data: params
+    }),
+    deleteLeave: (params?: any) => request({
+        url: '/leave/delete',
+        method: 'POST',
+        mock: false,
+        data: params
     })
 }

@@ -192,31 +192,28 @@ import { storeToRefs } from 'pinia'
 const store = useStore()
 const { userName, userEmail } = storeToRefs(store)
 
-// 测试日志
+// 退出登录
 const logout = () => {
-  store.logout()
-  router.push('/login')
-  // ElMessageBox.confirm(
-  //   '提示',                     // 标题
-  //   `您确定要退出登录吗？`,  // 消息内容
-  //   {
-  //     confirmButtonText: '确认',  // 确认按钮文字
-  //     cancelButtonText: '取消',   // 取消按钮文字
-  //     type: 'warning',            // 消息类型（显示警告图标）
-  //     center: true,               // 内容居中
-  //     customClass: 'centered-message-box'  // 自定义样式类
-  //   }
-  // )
-  //   .then(() => {
-  //     // 用户点击确认 - 退出登�?
-  //     //     // 清除 localStorage 中的 token
-  //     localStorage.removeItem('token')
-  //     // 跳转到登录页
-  //     router.push('/login')
-  //   })
-  //   .catch(() => {
-  //     // 用户点击取消 - 不做任何操作
-  //   })
+  ElMessageBox.confirm(
+    '提示',                     // 标题
+    `您确定要退出登录吗？`,  // 消息内容
+    {
+      confirmButtonText: '确认',  // 确认按钮文字
+      cancelButtonText: '取消',   // 取消按钮文字
+      type: 'warning',            // 消息类型（显示警告图标）
+      center: true,               // 内容居中
+      customClass: 'centered-message-box'  // 自定义样式类
+    }
+  )
+    .then(() => {
+      // 用户点击确认 - 退出登录
+      store.logout()
+      // 跳转到登录页
+      router.push('/login')
+    })
+    .catch(() => {
+      // 用户点击取消 - 不做任何操作
+    })
 }
 
 

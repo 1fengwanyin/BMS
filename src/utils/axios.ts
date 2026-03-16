@@ -20,6 +20,12 @@ const service = axios.create({
 // ========== 请求拦截器 ==========
 service.interceptors.request.use((config) => {
     // 在发送请求之前做些处理（如添加token、请求头）
+    // 从localStorage获取token
+    const token = localStorage.getItem('token');
+    // 如果token存在，添加到请求头
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
 }, (error) => {
     // 对请求错误做统一处理

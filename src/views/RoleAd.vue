@@ -76,7 +76,7 @@
           </div>
           <div class="perms-tree">
             <el-tree ref="treeRef" style="max-width: 600px" :data="permissionTree" show-checkbox node-key="id"
-              :default-checked-keys="selectedPerms" :props="treeProps" :check-strictly="true" />
+              :default-checked-keys="checkedPerms" :default-half-checked-keys="halfCheckedPerms" :props="treeProps" />
           </div>
         </div>
       </div>
@@ -121,8 +121,11 @@ const pageSize = ref(10)
 
 
 
-/** 选中的权限 */
-const selectedPerms = ref<string[]>([])
+/** 全选的权限 */
+const checkedPerms = ref<string[]>([])
+
+/** 半选的权限 */
+const halfCheckedPerms = ref<string[]>([])
 
 /** 当前角色名称 */
 const currentRoleName = ref('')
@@ -135,6 +138,9 @@ const permissionTree = ref<any[]>([])
 
 /** 菜单ID到名称的映射 */
 const menuIdToNameMap = ref(new Map())
+
+/** 菜单ID到等级的映射：1-一级菜单，2-二级菜单，3-三级菜单 */
+const menuIdToLevelMap = ref(new Map())
 
 /**
  * 获取菜单数据并构建权限树
@@ -182,6 +188,8 @@ const buildPermissionTree = (menuList: any[]): any[] => {
   const rootMenus: any[] = []
   // 重置菜单ID到名称的映射
   menuIdToNameMap.value = new Map()
+  // 重置菜单ID到等级的映射
+  menuIdToLevelMap.value = new Map()
 
   // 首先创建所有菜单项
   menuList.forEach(menu => {
@@ -205,6 +213,8 @@ const buildPermissionTree = (menuList: any[]): any[] => {
     if (!parentId) {
       // 根菜单，一级权限
       rootMenus.push(menuMap.get(menuId))
+      // 设置菜单等级为1
+      menuIdToLevelMap.value.set(menuId, 1)
     }
   })
 
@@ -213,6 +223,7 @@ const buildPermissionTree = (menuList: any[]): any[] => {
     const menuId = menu._id || menu.id
     const parentId = menu.parentId
     const menuName = menu.menuName || menu.name
+    const path = menu.menuPath || menu.path
 
     if (parentId) {
       // 子菜单
@@ -221,10 +232,31 @@ const buildPermissionTree = (menuList: any[]): any[] => {
         // 检查父菜单是否是根菜单（一级权限）
         const isParentRoot = menuList.some(m => (m._id || m.id) === parentId && !m.parentId)
         if (isParentRoot) {
-          // 父菜单是根菜单，所以当前菜单是二级权限
-          parent.children.push(menuMap.get(menuId))
+          // 父菜单是根菜单
+          if (path) {
+            // 有path，是二级权限
+            parent.children.push(menuMap.get(menuId))
+            // 设置菜单等级为2
+            menuIdToLevelMap.value.set(menuId, 2)
+          } else {
+            // 没有path，是三级权限
+            // 按照规则命名权限：二级菜单去掉"管理"两字加上三级菜单的名称
+            const parentName = parent.label.replace('管理', '')
+            const newMenuName = parentName + menuName
+            // 更新菜单名称
+            const menuItem = menuMap.get(menuId)
+            if (menuItem) {
+              menuItem.label = newMenuName
+            }
+            // 更新菜单ID到名称的映射
+            menuIdToNameMap.value.set(menuId, newMenuName)
+            // 将三级菜单添加到二级菜单的children中
+            parent.children.push(menuMap.get(menuId))
+            // 设置菜单等级为3
+            menuIdToLevelMap.value.set(menuId, 3)
+          }
         } else {
-          // 父菜单不是根菜单，所以当前菜单是三级权限
+          // 父菜单不是根菜单，是三级权限
           // 按照规则命名权限：二级菜单去掉"管理"两字加上三级菜单的名称
           const parentName = parent.label.replace('管理', '')
           const newMenuName = parentName + menuName
@@ -237,6 +269,8 @@ const buildPermissionTree = (menuList: any[]): any[] => {
           menuIdToNameMap.value.set(menuId, newMenuName)
           // 将三级菜单添加到二级菜单的children中
           parent.children.push(menuMap.get(menuId))
+          // 设置菜单等级为3
+          menuIdToLevelMap.value.set(menuId, 3)
         }
       }
     }
@@ -320,19 +354,28 @@ const handleCurrentChange = (current: number) => {
  * 格式化权限列表 */
 const formatPermsList = (row: Role) => {
   if (row.permissionList) {
-    const halfCheckedKeys = row.permissionList.halfCheckedKeys || []
-    if (halfCheckedKeys.length > 0) {
-      // 将权限ID转换为菜单名称
-      const permNames = halfCheckedKeys.map(key => menuIdToNameMap.value.get(key) || key)
-        // 过滤掉三级菜单的权限（包含操作动词的权限），只显示二级菜单的权限
-        .filter(name => typeof name === 'string' && !(name.includes('查看') || name.includes('编辑') || name.includes('新增') || name.includes('删除')))
-      return permNames.join(', ')
+    // 合并checkedKeys和halfCheckedKeys
+    const allKeys = [...(row.permissionList.checkedKeys || []), ...(row.permissionList.halfCheckedKeys || [])]
+    if (allKeys.length > 0) {
+      // 将权限ID转换为菜单名称，只保留二级菜单
+      const permNames = allKeys
+        // 过滤掉非二级菜单
+        .filter(key => menuIdToLevelMap.value.get(key) === 2)
+        // 将权限ID转换为菜单名称
+        .map(key => menuIdToNameMap.value.get(key) || key)
+      // 去重
+      const uniquePermNames = [...new Set(permNames)]
+      return uniquePermNames.join(', ')
     }
     return ''
   }
   if (row.permsList && row.permsList.length > 0) {
-    // 将权限ID转换为菜单名称
-    const permNames = row.permsList.map(key => menuIdToNameMap.value.get(key) || key)
+    // 将权限ID转换为菜单名称，只保留二级菜单
+    const permNames = row.permsList
+      // 过滤掉非二级菜单
+      .filter(key => menuIdToLevelMap.value.get(key) === 2)
+      // 将权限ID转换为菜单名称
+      .map(key => menuIdToNameMap.value.get(key) || key)
     return permNames.join(', ')
   }
   return ''
@@ -437,9 +480,11 @@ const handleSetPerms = (_index: number, row: Role) => {
   currentRoleId.value = row._id || row.roleId
   // 填充权限数据
   if (row.permissionList) {
-    selectedPerms.value = [...(row.permissionList.checkedKeys || []), ...(row.permissionList.halfCheckedKeys || [])]
+    checkedPerms.value = row.permissionList.checkedKeys || []
+    halfCheckedPerms.value = row.permissionList.halfCheckedKeys || []
   } else {
-    selectedPerms.value = row.permsList || []
+    checkedPerms.value = row.permsList || []
+    halfCheckedPerms.value = []
   }
   customDraggingVisible.value = true
 }
@@ -504,12 +549,16 @@ const handleDialogConfirm = () => {
     })
   } else if (active.value === 'setPerms') {
     // 处理设置权限
-    // 获取所有选中的节点
+    // 获取所有选中的节点（包括全选和半选）
     const checkedKeys = treeRef.value?.getCheckedKeys() || []
+    const halfCheckedKeys = treeRef.value?.getHalfCheckedKeys() || []
 
     const permData = {
       _id: currentRoleId.value,
-      permissionList: { checkedKeys: [], halfCheckedKeys: checkedKeys },
+      permissionList: {
+        checkedKeys: checkedKeys, // 全选的节点（通常是三级菜单/按钮）
+        halfCheckedKeys: halfCheckedKeys // 半选的节点（通常是一级或二级菜单）
+      },
       action: 'edit'
     }
 

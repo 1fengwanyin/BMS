@@ -29,7 +29,7 @@ function initMap() {
   AMapLoader.load({
     key: "248d025f85515fc087e499075a05d587", //申请好的 Web 端开发者 Key，首次调用 load 时必填
     version: "2.0", //指定要加载的 JS API 的版本，缺省时默认为 1.4.15
-    plugins: ["AMap.Scale", "AMap.ToolBar", "AMap.HawkEye", "AMap.ControlBar", "AMap.DistrictSearch"], //需要使用的的插件列表
+    plugins: ["AMap.Scale", "AMap.ToolBar", "AMap.HawkEye", "AMap.ControlBar", "AMap.DistrictSearch", "AMap.MoveAnimation"], //需要使用的的插件列表
   })
     .then((AMap: any) => {
       // 创建地图实例
@@ -106,13 +106,14 @@ interface DistrictData {
 
 // 合肥市区域配置
 const hefeiDistricts: Array<{ name: string; center: [number, number]; count: number }> = [
-  { name: '蜀山区', center: [117.23, 31.86], count: 14 },
+  { name: '蜀山区', center: [117.23, 31.86], count: 13 },
   { name: '庐阳区', center: [117.31, 31.89], count: 12 },
   { name: '瑶海区', center: [117.38, 31.89], count: 12 },
-  { name: '包河区', center: [117.32, 31.83], count: 14 },
+  { name: '包河区', center: [117.32, 31.83], count: 13 },
   { name: '肥东县', center: [117.54, 31.89], count: 12 },
   { name: '肥西县', center: [117.17, 31.70], count: 12 },
-  { name: '巢湖市', center: [117.70, 31.70], count: 14 }
+  { name: '巢湖市', center: [117.70, 31.70], count: 13 },
+  { name: '庐江县', center: [117.20, 31.25], count: 13 }
 ]; // 总计100个点
 
 // 道路名称列表
@@ -300,8 +301,6 @@ function addCircleMarker(map: any, AMap: any) {
         // 不使用默认多边形，直接传递空数组
         callback([]);
       }
-
-
 
       // 初始化时创建并显示区域边界
       getDistrictBoundary(districtName, function (polygonPath) {
