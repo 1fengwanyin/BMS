@@ -321,6 +321,11 @@ const getLeaveList = async () => {
   try {
     const res: any = await Api.getLeaveList(params)
 
+    // 打印后端返回的数据结构
+    console.log('后端返回的 leave 数据:', res)
+    console.log('数据类型:', typeof res)
+    console.log('是否为数组:', Array.isArray(res))
+
     // 处理后端返回的数据结构
     let originalData: Leave[] = []
     let totalCount = 0
@@ -329,7 +334,14 @@ const getLeaveList = async () => {
       // 后端服务返回的结构直接是数组
       originalData = res
       totalCount = res.length
+    } else if (res && res.data && Array.isArray(res.data)) {
+      // 后端服务返回的结构是 { data: [...] }
+      originalData = res.data
+      totalCount = res.data.length
     }
+
+    // 打印处理后的数据
+    console.log('处理后的数据:', originalData)
 
     // 保存所有数据
     allTableData.value = originalData
@@ -338,6 +350,7 @@ const getLeaveList = async () => {
     // 前端分页
     sliceTableData()
   } catch (err: any) {
+    console.error('获取休假列表失败:', err)
     ElMessage.error(err?.msg || err?.message || '获取休假列表失败')
   }
 }
